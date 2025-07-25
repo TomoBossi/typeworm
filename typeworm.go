@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -119,8 +120,11 @@ func findKeyboard() (*evdev.InputDevice, error) {
 }
 
 func Record(path, interrupt string, overwrite bool) error {
-	err := checkExistsRecord(path, overwrite)
-	if err != nil {
+	if err := checkExistsRecord(path, overwrite); err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
 
@@ -168,8 +172,7 @@ func Record(path, interrupt string, overwrite bool) error {
 }
 
 func Playback(path string, wait time.Duration, trim bool) error {
-	err := checkExistsPlayback(path)
-	if err != nil {
+	if err := checkExistsPlayback(path); err != nil {
 		return err
 	}
 
