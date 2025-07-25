@@ -15,11 +15,26 @@ type flags struct {
 	path      string
 	wait      time.Duration
 	trim      bool
+	overwrite bool
 }
 
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	return err == nil, err
+}
+
+func checkExistsPlayback(path string) error {
+	if pathExists, _ := exists(path); !pathExists {
+		return fmt.Errorf("file must exist for playback mode")
+	}
+	return nil
+}
+
+func checkExistsRecord(path string, overwrite bool) error {
+	if pathExists, _ := exists(path); pathExists && !overwrite {
+		return fmt.Errorf("file already exists, and the overwrite flag was not set")
+	}
+	return nil
 }
 
 func NewFlags() (*flags, error) {
@@ -47,15 +62,15 @@ func NewFlags() (*flags, error) {
 		return nil, fmt.Errorf("file must have a .tw extension")
 	}
 
-	pathExists, _ := exists(*path)
-	if !pathExists && *mode == "playback" {
-		return nil, fmt.Errorf("file must exist for playback mode")
-	} else if pathExists && !*overwrite && *mode != "playback" {
-		return nil, fmt.Errorf("file already exists, and the overwrite flag was not set")
+	if err := checkExistsPlayback(*path); err != nil && *mode == "playback" {
+		return nil, err
 	}
 
-	_, ok := labelKeycode[*interrupt]
-	if !ok {
+	if err := checkExistsRecord(*path, *overwrite); err != nil && *mode == "record" {
+		return nil, err
+	}
+
+	if _, ok := labelKeycode[*interrupt]; !ok {
 		return nil, fmt.Errorf("unknown key label for interrupt key")
 	}
 
@@ -67,6 +82,7 @@ func NewFlags() (*flags, error) {
 		path:      *path,
 		wait:      waitDuration,
 		trim:      *trim,
+		overwrite: *overwrite,
 	}, nil
 }
 
@@ -88,4 +104,8 @@ func (f flags) Wait() time.Duration {
 
 func (f flags) Trim() bool {
 	return f.trim
+}
+
+func (f flags) Overwrite() bool {
+	return f.overwrite
 }

@@ -15,8 +15,11 @@ func main() {
 
 	switch flags.Mode() {
 	case "record":
-		record(flags.Path(), flags.Interrupt())
+		err = Record(flags.Path(), flags.Interrupt(), flags.Overwrite())
 	case "playback":
-		playback(flags.Path(), flags.Wait(), flags.Trim())
+		err = Playback(flags.Path(), flags.Wait(), flags.Trim())
+	}
+	if err != nil {
+		panic(err)
 	}
 }

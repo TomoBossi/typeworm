@@ -118,7 +118,12 @@ func findKeyboard() (*evdev.InputDevice, error) {
 	return nil, fmt.Errorf("no keyboard device found")
 }
 
-func record(path, interrupt string) error {
+func Record(path, interrupt string, overwrite bool) error {
+	err := checkExistsRecord(path, overwrite)
+	if err != nil {
+		return err
+	}
+
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err
@@ -162,7 +167,12 @@ func record(path, interrupt string) error {
 	return nil
 }
 
-func playback(path string, wait time.Duration, trim bool) error {
+func Playback(path string, wait time.Duration, trim bool) error {
+	err := checkExistsPlayback(path)
+	if err != nil {
+		return err
+	}
+
 	file, err := os.Open(path)
 	if err != nil {
 		return err
