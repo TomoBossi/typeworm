@@ -50,17 +50,40 @@ func NewFlags() (*flags, error) {
 		return nil, fmt.Errorf("file path not provided")
 	}
 
-	// check if path is directory
-	paths := []string{}
-	isDirectory, err := isDir(*path)
+	// check if path contains a single integer format specifier %d at the base
+	hasSpecifier, err := hasIntegerSpecifier(*path)
 	if err != nil {
 		return nil, err
 	}
-	if isDirectory {
-		paths, err = listDir(*path, ".tw")
+
+	// check if path is directory
+	paths := []string{}
+	isDirectory := false
+	filePath := *path
+
+	if *mode == "record" && *session {
+		if !hasSpecifier {
+			return nil, fmt.Errorf("path base must contain an integer format specifier for a recording session")
+		}
+		filePath = fmt.Sprintf(filePath, *offset)
+	}
+
+	if *mode == "playback" && *session {
+		isDirectory, err := isDir(filePath)
 		if err != nil {
 			return nil, err
 		}
+		if isDirectory {
+			paths, err = listDir(filePath, ".tw")
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// path contains an integer format specifier (outside record session mode)
+	if hasSpecifier && !(*mode == "record" && *session) {
+		return nil, fmt.Errorf("path cannot contain an integer format specifier unless in a recording session")
 	}
 
 	// path doesn't point to a file (outside playback session mode)
@@ -84,7 +107,7 @@ func NewFlags() (*flags, error) {
 	}
 
 	// file exists with no overwrite directive in record mode
-	if err := checkExistsRecord(*path, *overwrite); err != nil && *mode == "record" {
+	if err := checkExistsRecord(filePath, *overwrite); err != nil && *mode == "record" {
 		return nil, err
 	}
 

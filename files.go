@@ -28,11 +28,6 @@ func checkExistsRecord(path string, overwrite bool) error {
 }
 
 func hasIntegerSpecifier(path string) (bool, error) {
-	if isDirectory, err := isDir(path); err != nil {
-		return false, err
-	} else if isDirectory && strings.Contains(path, "%d") {
-		return false, fmt.Errorf("file parent directories cannot include format specifiers")
-	}
 	if dir := filepath.Dir(path); strings.Contains(dir, "%d") {
 		return false, fmt.Errorf("file parent directories cannot include format specifiers")
 	}
@@ -47,7 +42,6 @@ func hasIntegerSpecifier(path string) (bool, error) {
 func isDir(path string) (bool, error) {
 	info, err := os.Stat(path)
 	if err != nil {
-		fmt.Println("Error:", err)
 		return false, err
 	}
 	return info.IsDir(), nil

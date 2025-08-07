@@ -74,9 +74,20 @@ type input struct {
 }
 
 type recordConfiguration struct {
+	keyboard  *evdev.InputDevice
 	path      string
 	stop      string
 	overwrite bool
+}
+
+type recordSessionConfiguration struct {
+	keyboard   *evdev.InputDevice
+	pathFormat string
+	offset     uint
+	overwrite  bool
+	stop       string
+	next       string
+	redo       string
 }
 
 type playbackConfiguration struct {
@@ -149,6 +160,14 @@ func findKeyboard() (*evdev.InputDevice, error) {
 }
 
 func Record(config recordConfiguration) error {
+	if config.keyboard == nil {
+		var err error
+		config.keyboard, err = findKeyboard()
+		if err != nil {
+			return err
+		}
+	}
+
 	if err := checkExistsRecord(config.path, config.overwrite); err != nil {
 		return err
 	}
@@ -163,18 +182,13 @@ func Record(config recordConfiguration) error {
 	}
 	defer file.Close()
 
-	keyboard, err := findKeyboard()
-	if err != nil {
-		return err
-	}
-
 	var inputs []input
 	start := time.Now()
 	recording := true
 
 	fmt.Printf("recording keys to %s - press %s to stop\n", config.path, config.stop)
 	for recording {
-		events, err := keyboard.Read()
+		events, err := config.keyboard.Read()
 		if err != nil {
 			continue
 		}
@@ -197,6 +211,70 @@ func Record(config recordConfiguration) error {
 	}
 	writer.Flush()
 	fmt.Printf("%d inputs were recorded\n", len(inputs))
+	return nil
+}
+
+func RecordSession(config recordSessionConfiguration) error {
+	if config.keyboard == nil {
+		var err error
+		config.keyboard, err = findKeyboard()
+		if err != nil {
+			return err
+		}
+	}
+
+	recordConfig := recordConfiguration{
+		keyboard:  config.keyboard,
+		path:      "",
+		stop:      config.stop,
+		overwrite: config.overwrite,
+	}
+
+	i := config.offset
+	last := i
+	continueRecording := true
+
+	for {
+		if continueRecording {
+			recordConfig.path = fmt.Sprintf(config.pathFormat, i)
+			err := Record(recordConfig)
+			if err != nil {
+				return err
+			}
+
+			last = i
+			i++
+
+			continueRecording = false
+			fmt.Printf("press %s to stop, %s to start recording to %s, or %s to record over the last file again\n", config.stop, config.next, fmt.Sprintf(config.pathFormat, i), config.redo)
+		}
+
+		start := time.Now()
+		events, err := config.keyboard.Read()
+		if err != nil {
+			return err
+		}
+
+		stopRecording := false
+		for _, ev := range events {
+			if ev.Type == evdev.EV_KEY && ev.Value == 1 && timevalToTime(ev.Time).After(start) {
+				switch ev.Code {
+				case labelKeycode[config.stop]:
+					stopRecording = true
+				case labelKeycode[config.next]:
+					recordConfig.overwrite = config.overwrite
+					continueRecording = true
+				case labelKeycode[config.redo]:
+					i = last
+					recordConfig.overwrite = true
+					continueRecording = true
+				}
+			}
+		}
+		if stopRecording {
+			break
+		}
+	}
 	return nil
 }
 
@@ -258,7 +336,7 @@ func timevalToTime(tv syscall.Timeval) time.Time {
 
 func PlaybackSession(config playbackSessionConfiguration) error {
 	playbackConfig := playbackConfiguration{
-		path:      config.pathQueue[config.startIndex],
+		path:      "",
 		wait:      config.wait,
 		trim:      config.trim,
 		blacklist: config.blacklist,
@@ -272,10 +350,10 @@ func PlaybackSession(config playbackSessionConfiguration) error {
 	i := config.startIndex
 	last := i
 	numPaths := uint(len(config.pathQueue))
-	play := true
+	continuePlayback := true
 
 	for i < numPaths {
-		if play {
+		if continuePlayback {
 			playbackConfig.path = config.pathQueue[i]
 			err := Playback(playbackConfig)
 			if err != nil {
@@ -292,7 +370,7 @@ func PlaybackSession(config playbackSessionConfiguration) error {
 				}
 			}
 
-			play = false
+			continuePlayback = false
 			fmt.Printf("press %s to stop, %s to start playing back from %s, or %s to play back from last file again\n", config.stop, config.next, config.pathQueue[i], config.redo)
 		}
 
@@ -302,18 +380,22 @@ func PlaybackSession(config playbackSessionConfiguration) error {
 			return err
 		}
 
+		stopPlayback := false
 		for _, ev := range events {
 			if ev.Type == evdev.EV_KEY && ev.Value == 1 && timevalToTime(ev.Time).After(start) {
 				switch ev.Code {
 				case labelKeycode[config.stop]:
-					i = numPaths
+					stopPlayback = true
 				case labelKeycode[config.next]:
-					play = true
+					continuePlayback = true
 				case labelKeycode[config.redo]:
 					i = last
-					play = true
+					continuePlayback = true
 				}
 			}
+		}
+		if stopPlayback {
+			break
 		}
 	}
 	return nil

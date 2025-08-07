@@ -9,20 +9,34 @@ import (
 func main() {
 	flags, err := NewFlags()
 	if err != nil {
-		fmt.Printf("%s\n", err.Error())
 		flag.Usage()
-		return
+		fmt.Println()
+		panic(err)
 	}
 
 	switch flags.Mode() {
 	case "record":
 		if !flags.Session() {
 			config := recordConfiguration{
+				keyboard:  nil,
 				path:      flags.Path(),
 				stop:      flags.StopKey(),
 				overwrite: flags.Overwrite(),
 			}
 			if err = Record(config); err != nil {
+				panic(err)
+			}
+		} else {
+			config := recordSessionConfiguration{
+				keyboard:   nil,
+				pathFormat: flags.Path(),
+				offset:     flags.Offset(),
+				overwrite:  flags.Overwrite(),
+				stop:       flags.StopKey(),
+				next:       flags.NextKey(),
+				redo:       flags.RedoKey(),
+			}
+			if err = RecordSession(config); err != nil {
 				panic(err)
 			}
 		}
