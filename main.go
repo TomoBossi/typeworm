@@ -69,10 +69,7 @@ func main() {
 				panic(err)
 			}
 			if !isDirectory {
-				fmt.Println(pathQueue)
-				fmt.Println(flags.Path())
 				startIndex = indexOf(filepath.Join(dirPath, filepath.Base(flags.Path())), pathQueue)
-				fmt.Println(startIndex)
 			}
 			config := playbackSessionConfiguration{
 				pathQueue:  pathQueue,
