@@ -4,83 +4,91 @@ import (
 	"flag"
 	"fmt"
 	"path/filepath"
+
+	"github.com/tomobossi/kyev"
 )
 
 func main() {
-	flags, err := NewFlags()
+	flags, err := newFlags()
 	if err != nil {
 		flag.Usage()
 		fmt.Println()
 		panic(err)
 	}
 
-	switch flags.Mode() {
+	keyboard, err := kyev.GetKeyboard(flags.keyboardNameMatch, flags.keyboardPhysMatch)
+	if err != nil {
+		panic(err)
+	}
+
+	switch flags.mode {
 	case "record":
-		if !flags.Session() {
+		if !flags.session {
 			config := recordConfiguration{
-				keyboard:  nil,
-				path:      flags.Path(),
-				stop:      flags.StopKey(),
-				overwrite: flags.Overwrite(),
+				keyboard:  keyboard,
+				path:      flags.path,
+				stop:      flags.stopKey,
+				overwrite: flags.overwrite,
 			}
 			if err = Record(config); err != nil {
 				panic(err)
 			}
 		} else {
 			config := recordSessionConfiguration{
-				keyboard:   nil,
-				pathFormat: flags.Path(),
-				offset:     flags.Offset(),
-				overwrite:  flags.Overwrite(),
-				stop:       flags.StopKey(),
-				next:       flags.NextKey(),
-				redo:       flags.RedoKey(),
+				keyboard:   keyboard,
+				pathFormat: flags.path,
+				offset:     flags.offset,
+				overwrite:  flags.overwrite,
+				stop:       flags.stopKey,
+				next:       flags.nextKey,
+				redo:       flags.redoKey,
 			}
 			if err = RecordSession(config); err != nil {
 				panic(err)
 			}
 		}
 	case "playback":
-		if !flags.Session() {
+		if !flags.session {
 			config := playbackConfiguration{
-				path:      flags.Path(),
-				wait:      flags.Wait(),
-				trim:      flags.Trim(),
+				path:      flags.path,
+				wait:      flags.wait,
+				trim:      flags.trim,
 				blacklist: []string{},
 			}
 			if err = Playback(config); err != nil {
 				panic(err)
 			}
 		} else {
-			pathQueue := []string{}
+			var pathQueue []string
 			startIndex := 0
 			dirPath := ""
-			isDirectory, err := isDir(flags.Path())
+			isDirectory, err := isDir(flags.path)
 			if err != nil {
 				panic(err)
 			}
 			if isDirectory {
-				dirPath = flags.Path()
+				dirPath = flags.path
 			} else {
-				dirPath = filepath.Dir(flags.Path())
+				dirPath = filepath.Dir(flags.path)
 			}
 			pathQueue, err = listDir(dirPath, ".tw")
 			if err != nil {
 				panic(err)
 			}
 			if !isDirectory {
-				startIndex = indexOf(filepath.Join(dirPath, filepath.Base(flags.Path())), pathQueue)
+				startIndex = indexOf(filepath.Join(dirPath, filepath.Base(flags.path)), pathQueue)
 			}
 			config := playbackSessionConfiguration{
+				keyboard:   keyboard,
 				pathQueue:  pathQueue,
 				startIndex: uint(startIndex),
-				wait:       flags.Wait(),
-				trim:       flags.Trim(),
-				loop:       flags.Loop(),
-				blacklist:  []string{flags.StopKey(), flags.NextKey(), flags.RedoKey()},
-				stop:       flags.StopKey(),
-				next:       flags.NextKey(),
-				redo:       flags.RedoKey(),
+				wait:       flags.wait,
+				trim:       flags.trim,
+				loop:       flags.loop,
+				blacklist:  []string{flags.stopKey, flags.nextKey, flags.redoKey},
+				stop:       flags.stopKey,
+				next:       flags.nextKey,
+				redo:       flags.redoKey,
 			}
 			if err = PlaybackSession(config); err != nil {
 				panic(err)

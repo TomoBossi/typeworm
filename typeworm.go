@@ -7,66 +7,11 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/bendahl/uinput"
-	evdev "github.com/gvalkov/golang-evdev"
+	"github.com/tomobossi/kyev"
 )
-
-var keycodeLabel = map[uint16]string{ // typeworm can be extended by mapping new keycodes to unique labels
-	evdev.KEY_0:         "0",
-	evdev.KEY_1:         "1",
-	evdev.KEY_2:         "2",
-	evdev.KEY_3:         "3",
-	evdev.KEY_4:         "4",
-	evdev.KEY_5:         "5",
-	evdev.KEY_6:         "6",
-	evdev.KEY_7:         "7",
-	evdev.KEY_8:         "8",
-	evdev.KEY_9:         "9",
-	evdev.KEY_A:         "A",
-	evdev.KEY_B:         "B",
-	evdev.KEY_C:         "C",
-	evdev.KEY_D:         "D",
-	evdev.KEY_E:         "E",
-	evdev.KEY_F:         "F",
-	evdev.KEY_G:         "G",
-	evdev.KEY_H:         "H",
-	evdev.KEY_I:         "I",
-	evdev.KEY_J:         "J",
-	evdev.KEY_K:         "K",
-	evdev.KEY_L:         "L",
-	evdev.KEY_M:         "M",
-	evdev.KEY_N:         "N",
-	evdev.KEY_O:         "O",
-	evdev.KEY_P:         "P",
-	evdev.KEY_Q:         "Q",
-	evdev.KEY_R:         "R",
-	evdev.KEY_S:         "S",
-	evdev.KEY_T:         "T",
-	evdev.KEY_U:         "U",
-	evdev.KEY_V:         "V",
-	evdev.KEY_W:         "W",
-	evdev.KEY_X:         "X",
-	evdev.KEY_Y:         "Y",
-	evdev.KEY_Z:         "Z",
-	evdev.KEY_UP:        "UP",
-	evdev.KEY_DOWN:      "DOWN",
-	evdev.KEY_LEFT:      "LEFT",
-	evdev.KEY_RIGHT:     "RIGHT",
-	evdev.KEY_ESC:       "ESC",
-	evdev.KEY_LEFTCTRL:  "LEFTCTRL",
-	evdev.KEY_LEFTSHIFT: "LEFTSHIFT",
-}
-
-var labelKeycode = func() map[string]uint16 {
-	m := make(map[string]uint16)
-	for keycode, label := range keycodeLabel {
-		m[label] = keycode
-	}
-	return m
-}()
 
 type input struct {
 	timestamp time.Duration
@@ -74,14 +19,14 @@ type input struct {
 }
 
 type recordConfiguration struct {
-	keyboard  *evdev.InputDevice
+	keyboard  *kyev.Keyboard
 	path      string
 	stop      string
 	overwrite bool
 }
 
 type recordSessionConfiguration struct {
-	keyboard   *evdev.InputDevice
+	keyboard   *kyev.Keyboard
 	pathFormat string
 	offset     uint
 	overwrite  bool
@@ -98,6 +43,7 @@ type playbackConfiguration struct {
 }
 
 type playbackSessionConfiguration struct {
+	keyboard   *kyev.Keyboard
 	pathQueue  []string
 	startIndex uint
 	wait       time.Duration
@@ -141,33 +87,7 @@ func sleep(start time.Time, timestamp, deadtime time.Duration, wait time.Duratio
 	}
 }
 
-func findKeyboard() (*evdev.InputDevice, error) {
-	var keyboard *evdev.InputDevice
-	devices, _ := evdev.ListInputDevices()
-	for _, dev := range devices {
-		if strings.Contains(strings.ToLower(dev.Name), "keyboard") {
-			if strings.Contains(strings.ToLower(dev.Phys), "usb") {
-				return dev, nil
-			} else if keyboard == nil {
-				keyboard = dev
-			}
-		}
-	}
-	if keyboard != nil {
-		return keyboard, nil
-	}
-	return nil, fmt.Errorf("no keyboard device found")
-}
-
 func Record(config recordConfiguration) error {
-	if config.keyboard == nil {
-		var err error
-		config.keyboard, err = findKeyboard()
-		if err != nil {
-			return err
-		}
-	}
-
 	if err := checkExistsRecord(config.path, config.overwrite); err != nil {
 		return err
 	}
@@ -188,19 +108,17 @@ func Record(config recordConfiguration) error {
 
 	fmt.Printf("recording keys to %s - press %s to stop\n", config.path, config.stop)
 	for recording {
-		events, err := config.keyboard.Read()
+		keypresses, err := config.keyboard.GetKeypresses()
 		if err != nil {
 			continue
 		}
 
-		for _, ev := range events {
-			if ev.Type == evdev.EV_KEY && ev.Value == 1 {
-				if ev.Code == labelKeycode[config.stop] {
-					recording = false
-					break
-				} else if label, ok := keycodeLabel[ev.Code]; ok {
-					inputs = append(inputs, input{time.Since(start), label})
-				}
+		for _, keypress := range keypresses {
+			if keypress.Code == kyev.LabelKeycodeMap[config.stop] {
+				recording = false
+				break
+			} else if label, ok := kyev.KeycodeLabelMap[keypress.Code]; ok {
+				inputs = append(inputs, input{time.Since(start), label})
 			}
 		}
 	}
@@ -217,7 +135,7 @@ func Record(config recordConfiguration) error {
 func RecordSession(config recordSessionConfiguration) error {
 	if config.keyboard == nil {
 		var err error
-		config.keyboard, err = findKeyboard()
+		config.keyboard, err = kyev.GetKeyboard("keyboard", "usb")
 		if err != nil {
 			return err
 		}
@@ -250,21 +168,21 @@ func RecordSession(config recordSessionConfiguration) error {
 		}
 
 		start := time.Now()
-		events, err := config.keyboard.Read()
+		keypresses, err := config.keyboard.GetKeypresses()
 		if err != nil {
 			return err
 		}
 
 		stopRecording := false
-		for _, ev := range events {
-			if ev.Type == evdev.EV_KEY && ev.Value == 1 && timevalToTime(ev.Time).After(start) {
-				switch ev.Code {
-				case labelKeycode[config.stop]:
+		for _, keypress := range keypresses {
+			if timevalToTime(keypress.Time).After(start) {
+				switch keypress.Code {
+				case kyev.LabelKeycodeMap[config.stop]:
 					stopRecording = true
-				case labelKeycode[config.next]:
+				case kyev.LabelKeycodeMap[config.next]:
 					recordConfig.overwrite = config.overwrite
 					continueRecording = true
-				case labelKeycode[config.redo]:
+				case kyev.LabelKeycodeMap[config.redo]:
 					i = last
 					recordConfig.overwrite = true
 					continueRecording = true
@@ -321,7 +239,7 @@ func Playback(config playbackConfiguration) error {
 	deadtime := inputs[0].timestamp
 	for j, i := range inputs {
 		sleep(start, i.timestamp, deadtime, config.wait, config.trim, j == 0)
-		if code, ok := labelKeycode[i.key]; ok {
+		if code, ok := kyev.LabelKeycodeMap[i.key]; ok {
 			_ = virtualKeyboard.KeyPress(int(code))
 		}
 	}
@@ -330,7 +248,7 @@ func Playback(config playbackConfiguration) error {
 	return nil
 }
 
-func timevalToTime(tv syscall.Timeval) time.Time {
+func timevalToTime(tv kyev.Timeval) time.Time {
 	return time.Unix(int64(tv.Sec), int64(tv.Usec)*1000)
 }
 
@@ -340,11 +258,6 @@ func PlaybackSession(config playbackSessionConfiguration) error {
 		wait:      config.wait,
 		trim:      config.trim,
 		blacklist: config.blacklist,
-	}
-
-	keyboard, err := findKeyboard()
-	if err != nil {
-		return err
 	}
 
 	i := config.startIndex
@@ -375,20 +288,20 @@ func PlaybackSession(config playbackSessionConfiguration) error {
 		}
 
 		start := time.Now()
-		events, err := keyboard.Read()
+		keypresses, err := config.keyboard.GetKeypresses()
 		if err != nil {
 			return err
 		}
 
 		stopPlayback := false
-		for _, ev := range events {
-			if ev.Type == evdev.EV_KEY && ev.Value == 1 && timevalToTime(ev.Time).After(start) {
-				switch ev.Code {
-				case labelKeycode[config.stop]:
+		for _, keypress := range keypresses {
+			if timevalToTime(keypress.Time).After(start) {
+				switch keypress.Code {
+				case kyev.LabelKeycodeMap[config.stop]:
 					stopPlayback = true
-				case labelKeycode[config.next]:
+				case kyev.LabelKeycodeMap[config.next]:
 					continuePlayback = true
-				case labelKeycode[config.redo]:
+				case kyev.LabelKeycodeMap[config.redo]:
 					i = last
 					continuePlayback = true
 				}

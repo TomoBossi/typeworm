@@ -6,23 +6,27 @@ import (
 	"path/filepath"
 	"slices"
 	"time"
+
+	"github.com/tomobossi/kyev"
 )
 
 type flags struct {
-	loop      bool
-	mode      string
-	nextKey   string
-	offset    uint
-	overwrite bool
-	path      string
-	redoKey   string
-	session   bool
-	stopKey   string
-	trim      bool
-	wait      time.Duration
+	loop              bool
+	mode              string
+	nextKey           string
+	offset            uint
+	overwrite         bool
+	path              string
+	redoKey           string
+	session           bool
+	stopKey           string
+	trim              bool
+	wait              time.Duration
+	keyboardNameMatch string
+	keyboardPhysMatch string
 }
 
-func NewFlags() (*flags, error) {
+func newFlags() (*flags, error) {
 	loop := flag.Bool("loop", true, "DEFAULT true - Loop through the files in the directory pointed to by PATH during a playback session. If the SESSION flag is not set or MODE is not playback, this flag will be ignored.")
 	mode := flag.String("mode", "", "REQUIRED - Start in record/rec/r or playback/play/p mode.")
 	offset := flag.Uint("offset", 0, "DEFAULT 0 - Starting value for the autoincremental numeric identifier used to render the file names throughout a session of recording. If MODE is not record or the SESSION flag is not set, this flag will be ignored.")
@@ -34,6 +38,8 @@ func NewFlags() (*flags, error) {
 	stopKey := flag.String("stop-key", "ESC", "DEFAULT ESC - Label of the key used to stop recording or playing back and exit typeworm. The chosen label must be mapped to a known keycode, and won't be recorded.")
 	trim := flag.Bool("trim", true, "DEFAULT true - Skip the leading deadtime between the start of the recording and the first input during playback. If MODE is record, this flag will be ignored.")
 	wait := flag.Uint("wait", 0, "DEFAULT 0 - Time between inputs during playback (milliseconds). If not specified or 0, inputs will be played back according to their exact timings as they were recorded. If MODE is record, this flag will be ignored.")
+	keyboardNameMatch := flag.String("keyboard-name", "keyboard", "DEFAULT keyboard - Narrow the keyboard search to devices with names containing this substring, ignoring capitalization. Device names are exactly as listed by xinput --list.")
+	keyboardPhysMatch := flag.String("keyboard-phys", "", "Narrow the keyboard search to devices with physical interface data containing this substring, ignoring capitalization. For example, \"usb\".")
 	flag.Parse()
 
 	// invalid mode
@@ -112,17 +118,17 @@ func NewFlags() (*flags, error) {
 	}
 
 	// invalid key label for stop key
-	if _, ok := labelKeycode[*stopKey]; !ok {
+	if _, ok := kyev.LabelKeycodeMap[*stopKey]; !ok {
 		return nil, fmt.Errorf("unknown key label for stop key")
 	}
 
 	// invalid key label for next key
-	if _, ok := labelKeycode[*nextKey]; !ok && *session {
+	if _, ok := kyev.LabelKeycodeMap[*nextKey]; !ok && *session {
 		return nil, fmt.Errorf("unknown key label for next key")
 	}
 
 	// invalid key label for redo key
-	if _, ok := labelKeycode[*redoKey]; !ok && *session {
+	if _, ok := kyev.LabelKeycodeMap[*redoKey]; !ok && *session {
 		return nil, fmt.Errorf("unknown key label for redo key")
 	}
 
@@ -131,61 +137,24 @@ func NewFlags() (*flags, error) {
 		return nil, fmt.Errorf("cannot set overlapping keys for stop, next and redo actions")
 	}
 
+	// missing keyboard name match substring
+	if *keyboardNameMatch == "" {
+		return nil, fmt.Errorf("keyboard name match substring not provided")
+	}
+
 	return &flags{
-		loop:      *loop,
-		mode:      *mode,
-		nextKey:   *nextKey,
-		offset:    *offset,
-		overwrite: *overwrite,
-		path:      *path,
-		redoKey:   *redoKey,
-		session:   *session,
-		stopKey:   *stopKey,
-		trim:      *trim,
-		wait:      time.Duration(*wait) * time.Millisecond,
+		loop:              *loop,
+		mode:              *mode,
+		nextKey:           *nextKey,
+		offset:            *offset,
+		overwrite:         *overwrite,
+		path:              *path,
+		redoKey:           *redoKey,
+		session:           *session,
+		stopKey:           *stopKey,
+		trim:              *trim,
+		wait:              time.Duration(*wait) * time.Millisecond,
+		keyboardNameMatch: *keyboardNameMatch,
+		keyboardPhysMatch: *keyboardPhysMatch,
 	}, nil
-}
-
-func (f flags) Loop() bool {
-	return f.loop
-}
-
-func (f flags) Mode() string {
-	return f.mode
-}
-
-func (f flags) NextKey() string {
-	return f.nextKey
-}
-
-func (f flags) Offset() uint {
-	return f.offset
-}
-
-func (f flags) Overwrite() bool {
-	return f.overwrite
-}
-
-func (f flags) Path() string {
-	return f.path
-}
-
-func (f flags) RedoKey() string {
-	return f.redoKey
-}
-
-func (f flags) Session() bool {
-	return f.session
-}
-
-func (f flags) StopKey() string {
-	return f.stopKey
-}
-
-func (f flags) Trim() bool {
-	return f.trim
-}
-
-func (f flags) Wait() time.Duration {
-	return f.wait
 }
