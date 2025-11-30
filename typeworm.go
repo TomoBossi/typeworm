@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bendahl/uinput"
+	"github.com/tomobossi/keynput"
 	"github.com/tomobossi/kyev"
 )
 
@@ -228,7 +228,7 @@ func Playback(config playbackConfiguration) error {
 		return fmt.Errorf("file does not contain recorded inputs")
 	}
 
-	virtualKeyboard, err := uinput.CreateKeyboard("/dev/uinput", []byte("typeworm"))
+	virtualKeyboard, err := keynput.NewKeyboard("typeworm")
 	if err != nil {
 		return err
 	}
@@ -240,7 +240,10 @@ func Playback(config playbackConfiguration) error {
 	for j, i := range inputs {
 		sleep(start, i.timestamp, deadtime, config.wait, config.trim, j == 0)
 		if code, ok := kyev.LabelKeycodeMap[i.key]; ok {
-			_ = virtualKeyboard.KeyPress(int(code))
+			err := virtualKeyboard.KeyPress(code)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	time.Sleep(100 * time.Millisecond)

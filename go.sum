@@ -1,4 +1,4 @@
-github.com/bendahl/uinput v1.7.0 h1:nA4fm8Wu8UYNOPykIZm66nkWEyvxzfmJ8YC02PM40jg=
-github.com/bendahl/uinput v1.7.0/go.mod h1:Np7w3DINc9wB83p12fTAM3DPPhFnAKP0WTXRqCQJ6Z8=
-github.com/tomobossi/kyev v1.0.1 h1:sSwfIy0cFO0yNajmcxVhDFTn0HCqCnIUL1ZmArcDQY4=
-github.com/tomobossi/kyev v1.0.1/go.mod h1:dN4URMj7SeO/E4VBlajmSfxyt4h/7eL1GvOUyHGQyuQ=
+github.com/tomobossi/keynput v1.0.0 h1:Kvu3N3wRU3XHV1xOS306/maA4wJ0Wtso2zR84bUEPrg=
+github.com/tomobossi/keynput v1.0.0/go.mod h1:P8HZjOKQQzQalTmw4o8jaVtDf2z+mLWp2BAm6EmsmUk=
+github.com/tomobossi/kyev v1.0.2 h1:wu33jtKr4cRgwLT5y7k4l16mlFyDR0db0Kbv12tySzU=
+github.com/tomobossi/kyev v1.0.2/go.mod h1:dN4URMj7SeO/E4VBlajmSfxyt4h/7eL1GvOUyHGQyuQ=
