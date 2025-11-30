@@ -108,7 +108,7 @@ func Record(config recordConfiguration) error {
 
 	fmt.Printf("recording keys to %s - press %s to stop\n", config.path, config.stop)
 	for recording {
-		keypresses, err := config.keyboard.GetKeypresses()
+		keypresses, err := config.keyboard.GetKeyPresses()
 		if err != nil {
 			continue
 		}
@@ -168,7 +168,7 @@ func RecordSession(config recordSessionConfiguration) error {
 		}
 
 		start := time.Now()
-		keypresses, err := config.keyboard.GetKeypresses()
+		keypresses, err := config.keyboard.GetKeyPresses()
 		if err != nil {
 			return err
 		}
@@ -291,7 +291,7 @@ func PlaybackSession(config playbackSessionConfiguration) error {
 		}
 
 		start := time.Now()
-		keypresses, err := config.keyboard.GetKeypresses()
+		keypresses, err := config.keyboard.GetKeyPresses()
 		if err != nil {
 			return err
 		}
