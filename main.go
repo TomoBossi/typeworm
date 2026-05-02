@@ -16,13 +16,12 @@ func main() {
 		panic(err)
 	}
 
-	keyboard, err := kyev.GetKeyboard(flags.keyboardNameMatch, flags.keyboardPhysMatch)
-	if err != nil {
-		panic(err)
-	}
-
 	switch flags.mode {
 	case "record":
+		keyboard, err := kyev.GetKeyboard(flags.keyboardNameMatch, flags.keyboardPhysMatch)
+		if err != nil {
+			panic(err)
+		}
 		if !flags.session {
 			config := recordConfiguration{
 				keyboard:  keyboard,
@@ -59,6 +58,10 @@ func main() {
 				panic(err)
 			}
 		} else {
+			keyboard, err := kyev.GetKeyboard(flags.keyboardNameMatch, flags.keyboardPhysMatch)
+			if err != nil {
+				panic(err)
+			}
 			var pathQueue []string
 			startIndex := 0
 			dirPath := ""
