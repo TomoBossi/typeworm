@@ -5,4 +5,4 @@ Because I want to record and play back my solutions to puzzle games so I only ha
 ## What?
 This is a minimal keylogger and playbacker of logged keys, or so they say. _It's like a tapeworm for your keyboard!_
 ## How?
-Be on Linux. Then compile and run the program with `sudo`. Make sure you be on Linux first.
+Be on Linux. Then compile and run the program. You will need to run with `sudo` if you are recording or doing a playback session. Make sure you be on Linux first.
