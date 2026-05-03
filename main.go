@@ -22,6 +22,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		defer keyboard.Close()
 		if !flags.session {
 			config := recordConfiguration{
 				keyboard:  keyboard,
@@ -62,6 +63,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
+			defer keyboard.Close()
 			var pathQueue []string
 			startIndex := 0
 			dirPath := ""
