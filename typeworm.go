@@ -91,7 +91,7 @@ func Record(config recordConfiguration) error {
 	if config.keyboard == nil {
 		return fmt.Errorf("invalid nil keyboard")
 	}
-	
+
 	if err := checkExistsRecord(config.path, config.overwrite); err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func Playback(config playbackConfiguration) error {
 		return fmt.Errorf("file does not contain recorded inputs")
 	}
 
-	virtualKeyboard, err := keynput.NewKeyboard("typeworm")
+	virtualKeyboard, err := keynput.Open("typeworm")
 	if err != nil {
 		return err
 	}
@@ -259,7 +259,7 @@ func PlaybackSession(config playbackSessionConfiguration) error {
 	if config.keyboard == nil {
 		return fmt.Errorf("invalid nil keyboard")
 	}
-	
+
 	playbackConfig := playbackConfiguration{
 		path:      "",
 		wait:      config.wait,

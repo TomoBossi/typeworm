@@ -18,7 +18,7 @@ func main() {
 
 	switch flags.mode {
 	case "record":
-		keyboard, err := kyev.GetKeyboard(flags.keyboardNameMatch, flags.keyboardPhysMatch)
+		keyboard, err := kyev.Open(flags.keyboardNameMatch, flags.keyboardPhysMatch)
 		if err != nil {
 			panic(err)
 		}
@@ -59,7 +59,7 @@ func main() {
 				panic(err)
 			}
 		} else {
-			keyboard, err := kyev.GetKeyboard(flags.keyboardNameMatch, flags.keyboardPhysMatch)
+			keyboard, err := kyev.Open(flags.keyboardNameMatch, flags.keyboardPhysMatch)
 			if err != nil {
 				panic(err)
 			}
