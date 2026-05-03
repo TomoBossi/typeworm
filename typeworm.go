@@ -88,6 +88,10 @@ func sleep(start time.Time, timestamp, deadtime time.Duration, wait time.Duratio
 }
 
 func Record(config recordConfiguration) error {
+	if config.keyboard == nil {
+		return fmt.Errorf("invalid nil keyboard")
+	}
+	
 	if err := checkExistsRecord(config.path, config.overwrite); err != nil {
 		return err
 	}
@@ -134,11 +138,7 @@ func Record(config recordConfiguration) error {
 
 func RecordSession(config recordSessionConfiguration) error {
 	if config.keyboard == nil {
-		var err error
-		config.keyboard, err = kyev.GetKeyboard("keyboard", "usb")
-		if err != nil {
-			return err
-		}
+		return fmt.Errorf("invalid nil keyboard")
 	}
 
 	recordConfig := recordConfiguration{
@@ -256,6 +256,10 @@ func timevalToTime(tv kyev.Timeval) time.Time {
 }
 
 func PlaybackSession(config playbackSessionConfiguration) error {
+	if config.keyboard == nil {
+		return fmt.Errorf("invalid nil keyboard")
+	}
+	
 	playbackConfig := playbackConfiguration{
 		path:      "",
 		wait:      config.wait,
