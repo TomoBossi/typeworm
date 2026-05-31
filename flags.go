@@ -22,6 +22,7 @@ type flags struct {
 	stopKey           string
 	trim              bool
 	wait              time.Duration
+	delay             time.Duration
 	keyboardNameMatch string
 	keyboardPhysMatch string
 }
@@ -36,8 +37,9 @@ func newFlags() (*flags, error) {
 	redoKey := flag.String("redo-key", "LEFTSHIFT", "DEFAULT LEFTSHIFT - Label of the key used to redo a recording throughout a recording session. The chosen label must be mapped to a known keycode. If the SESSION flag is not set, this flag will be ignored.")
 	session := flag.Bool("session", false, "DEFAULT false - Prevent typeworm from stopping after recording to or playing back from a single file. If the file name contains %d and MODE is record, typeworm will first try to record to the file with %d equal to the OFFSET flag. After recording the offset value will be autoincremented to record to the next file in the sequence.")
 	stopKey := flag.String("stop-key", "ESC", "DEFAULT ESC - Label of the key used to stop recording or playing back and exit typeworm. The chosen label must be mapped to a known keycode, and won't be recorded.")
-	trim := flag.Bool("trim", true, "DEFAULT true - Skip the leading deadtime between the start of the recording and the first input during playback. If MODE is record, this flag will be ignored.")
+	trim := flag.Bool("trim", false, "DEFAULT false - Skip the leading deadtime between the start of the recording and the first input during playback. If MODE is record, this flag will be ignored.")
 	wait := flag.Uint("wait", 0, "DEFAULT 0 - Time between inputs during playback (milliseconds). If not specified or 0, inputs will be played back according to their exact timings as they were recorded. If MODE is record, this flag will be ignored.")
+	delay := flag.Uint("delay", 0, "DEFAULT 0 - Leading deadtime between the start of the recording and the first input during playback (milliseconds). If not specified or 0, the first input will be played back according to its exact timing as it was recorded. If MODE is record or the TRIM flag is set, this flag will be ignored.")
 	keyboardNameMatch := flag.String("keyboard-name", "keyboard", "DEFAULT keyboard - Narrow the keyboard search to devices with names containing this substring, ignoring capitalization. Device names are exactly as listed by xinput --list.")
 	keyboardPhysMatch := flag.String("keyboard-phys", "", "Narrow the keyboard search to devices with physical interface data containing this substring, ignoring capitalization. For example, \"usb\".")
 	flag.Parse()
@@ -154,6 +156,7 @@ func newFlags() (*flags, error) {
 		stopKey:           *stopKey,
 		trim:              *trim,
 		wait:              time.Duration(*wait) * time.Millisecond,
+		delay:             time.Duration(*delay) * time.Millisecond,
 		keyboardNameMatch: *keyboardNameMatch,
 		keyboardPhysMatch: *keyboardPhysMatch,
 	}, nil
