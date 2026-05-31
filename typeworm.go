@@ -73,15 +73,15 @@ func parseDuration(s string) (time.Duration, error) {
 	return duration, nil
 }
 
-func sleep(start time.Time, timestamp, delay, wait time.Duration, trim bool, first bool) {
+func sleep(start time.Time, timestamp, deadtime, delay, wait time.Duration, trim bool, first bool) {
 	if first && !trim {
 		time.Sleep(delay)
 	} else if !first {
 		if wait == 0 {
 			if trim {
-				time.Sleep(timestamp - time.Since(start) - delay)
+				time.Sleep(timestamp - time.Since(start) - deadtime)
 			} else {
-				time.Sleep(timestamp - time.Since(start))
+				time.Sleep(timestamp - time.Since(start) + delay - deadtime)
 			}
 		} else {
 			time.Sleep(wait)
@@ -238,12 +238,13 @@ func Playback(config playbackConfiguration) error {
 
 	fmt.Printf("playing back from %s\n", config.path)
 	start := time.Now()
+	deadtime := inputs[0].timestamp
 	delay := config.delay
 	if delay == 0 {
-		delay = inputs[0].timestamp
+		delay = deadtime
 	}
 	for j, i := range inputs {
-		sleep(start, i.timestamp, delay, config.wait, config.trim, j == 0)
+		sleep(start, i.timestamp, deadtime, delay, config.wait, config.trim, j == 0)
 		if code, ok := kyev.LabelKeycodeMap[i.key]; ok {
 			err := virtualKeyboard.KeyPress(code)
 			if err != nil {
