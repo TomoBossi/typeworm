@@ -52,6 +52,7 @@ func main() {
 			config := playbackConfiguration{
 				path:      flags.path,
 				wait:      flags.wait,
+				hold:      flags.hold,
 				delay:     flags.delay,
 				trim:      flags.trim,
 				blacklist: []string{},
@@ -89,6 +90,7 @@ func main() {
 				pathQueue:  pathQueue,
 				startIndex: uint(startIndex),
 				wait:       flags.wait,
+				hold:       flags.hold,
 				delay:      flags.delay,
 				trim:       flags.trim,
 				loop:       flags.loop,

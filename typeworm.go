@@ -38,6 +38,7 @@ type recordSessionConfiguration struct {
 type playbackConfiguration struct {
 	path      string
 	wait      time.Duration
+	hold      time.Duration
 	delay     time.Duration
 	trim      bool
 	blacklist []string
@@ -48,6 +49,7 @@ type playbackSessionConfiguration struct {
 	pathQueue  []string
 	startIndex uint
 	wait       time.Duration
+	hold       time.Duration
 	delay      time.Duration
 	trim       bool
 	loop       bool
@@ -246,7 +248,7 @@ func Playback(config playbackConfiguration) error {
 	for j, i := range inputs {
 		sleep(start, i.timestamp, deadtime, delay, config.wait, config.trim, j == 0)
 		if code, ok := kyev.LabelKeycodeMap[i.key]; ok {
-			err := virtualKeyboard.KeyPress(code)
+			err := virtualKeyboard.KeyPress(code, config.hold)
 			if err != nil {
 				return err
 			}

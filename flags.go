@@ -22,6 +22,7 @@ type flags struct {
 	stopKey           string
 	trim              bool
 	wait              time.Duration
+	hold              time.Duration
 	delay             time.Duration
 	keyboardNameMatch string
 	keyboardPhysMatch string
@@ -39,6 +40,7 @@ func newFlags() (*flags, error) {
 	stopKey := flag.String("stop-key", "ESC", "DEFAULT ESC - Label of the key used to stop recording or playing back and exit typeworm. The chosen label must be mapped to a known keycode, and won't be recorded.")
 	trim := flag.Bool("trim", false, "DEFAULT false - Skip the leading deadtime between the start of the recording and the first input during playback. If MODE is record, this flag will be ignored.")
 	wait := flag.Uint("wait", 0, "DEFAULT 0 - Time between inputs during playback (milliseconds). If not specified or 0, inputs will be played back according to their exact timings as they were recorded. If MODE is record, this flag will be ignored.")
+	hold := flag.Uint("hold", 30, "DEFAULT 30 - Time between press and release events for each keypress during playback (milliseconds). The default value of 30ms is reasonable for most applications, which poll at rates upwards of 60hz. A higher HOLD value will prevent programs with a lower polling rate from dropping inputs. If MODE is record, this flag will be ignored.")
 	delay := flag.Uint("delay", 0, "DEFAULT 0 - Leading deadtime between the start of the recording and the first input during playback (milliseconds). If not specified or 0, the first input will be played back according to its exact timing as it was recorded. If MODE is record or the TRIM flag is set, this flag will be ignored.")
 	keyboardNameMatch := flag.String("keyboard-name", "keyboard", "DEFAULT keyboard - Narrow the keyboard search to devices with names containing this substring, ignoring capitalization. Device names are exactly as listed by xinput --list.")
 	keyboardPhysMatch := flag.String("keyboard-phys", "", "Narrow the keyboard search to devices with physical interface data containing this substring, ignoring capitalization. For example, \"usb\".")
@@ -156,6 +158,7 @@ func newFlags() (*flags, error) {
 		stopKey:           *stopKey,
 		trim:              *trim,
 		wait:              time.Duration(*wait) * time.Millisecond,
+		hold:              time.Duration(*hold) * time.Millisecond,
 		delay:             time.Duration(*delay) * time.Millisecond,
 		keyboardNameMatch: *keyboardNameMatch,
 		keyboardPhysMatch: *keyboardPhysMatch,
