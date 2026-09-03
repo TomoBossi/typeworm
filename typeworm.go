@@ -228,6 +228,10 @@ func Playback(config playbackConfiguration) error {
 		inputs = append(inputs, input{timestamp, parts[1]})
 	}
 
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
 	if len(inputs) == 0 {
 		return fmt.Errorf("file does not contain recorded inputs")
 	}
@@ -271,6 +275,8 @@ func PlaybackSession(config playbackSessionConfiguration) error {
 	playbackConfig := playbackConfiguration{
 		path:      "",
 		wait:      config.wait,
+		hold:      config.hold,
+		delay:     config.delay,
 		trim:      config.trim,
 		blacklist: config.blacklist,
 	}
@@ -287,6 +293,8 @@ func PlaybackSession(config playbackSessionConfiguration) error {
 			if err != nil {
 				return err
 			}
+
+			playbackConfig.delay = 0
 
 			last = i
 			i++
